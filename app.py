@@ -134,8 +134,13 @@ def download_compressed():
         return "No compressed image available."
 
 # Flask Application Run
+# if __name__ == "__main__":
+#     app.run(debug=True)
+
 if __name__ == "__main__":
-    app.run(debug=True)
+    from gunicorn.app.wsgiapp import run
+    run()
+
 
 """
 Explanation:
