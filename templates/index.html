@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Compression Tool</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+        }
+        input[type="file"] {
+            margin-bottom: 10px;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        input[type="file"]::-webkit-file-upload-button {
+            padding: 10px 20px;
+            background-color: #329335;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover,
+        input[type="file"]:hover::-webkit-file-upload-button {
+            background-color: #45a049;
+        }
+        .message {
+            margin-top: 20px;
+            padding: 10px;
+        }
+        .success {
+            color: #155724;
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            color: #721c24;
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+        }
+        .details {
+            margin-top: 20px;
+            text-align: left;
+            background-color: #f9f9f9;
+            padding: 15px;
+            border: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Image Compression Tool</h1>
+    <form action="/compress" method="post" enctype="multipart/form-data">
+        <div>
+            <input type="file" name="file" accept=".png, .jpg, .jpeg" required>
+        </div>
+        <div>
+            <label for="colors">Number of Colors (Default 16):</label>
+            <input type="number" name="colors" id="colors" min="1" max="256" value="16">
+        </div>
+        <div>
+            <button type="submit">Compress Image</button>
+        </div>
+    </form>
+
+    {% if error %}
+    <div class="message error">
+        <strong>Error:</strong> {{ error }}
+    </div>
+    {% endif %}
+
+    {% if success %}
+    <div class="message success">
+        <strong>Compression Successful!</strong><br>
+        Original size: {{ original_size }}<br>
+        Compressed size: {{ compressed_size }}<br>
+        Size reduction: {{ size_reduction }}<br>
+        <a href="{{ download_link }}" download="compressed_image.png">Download Compressed Image</a>
+    </div>
+    {% endif %}
+
+    {% if show_details %}
+    <button onclick="toggleDetails()">Show Detailed Explanation</button>
+    <div id="details" class="details" style="display: none;">
+        <h3>Detailed Explanation of Image Size Calculation Logic</h3>
+        <p>The process of calculating the actual size of an image and its final compressed size is a key highlight of this project, demonstrating the efficiency of K-means clustering for image compression. Below is a detailed breakdown of the logic used:</p>
+
+        <ol>
+            <li><strong>Original Image Size Calculation:</strong>
+                <ul>
+                    <li>For <strong>RGB images</strong>, each pixel is represented by three color channels: Red, Green, and Blue. Each channel requires <strong>1 byte</strong> of storage, leading to a total of <strong>3 bytes per pixel</strong>.</li>
+                    <li>The formula for calculating the size of an RGB image is:<br>
+                        <code>Size (in bytes) = Width × Height × 3</code>
+                    </li>
+                    <li>For example, if an image is <strong>800x600 pixels</strong>, the uncompressed size would be:<br>
+                        <code>800 × 600 × 3 = 1,440,000 bytes</code> (or approximately <strong>1,406.25 KB</strong>).
+                    </li>
+                </ul>
+            </li>
+            <li><strong>Compressed Image Size Calculation:</strong>
+                <ul>
+                    <li>After applying <strong>K-means clustering</strong> to reduce the number of colors to <code>k</code>, the image is converted to an <strong>indexed color format</strong>.</li>
+                    <li>The formula for calculating the size of an indexed image is:<br>
+                        <code>Size (in bytes) = (Number of Colors × 3) + (Width × Height × Bits per Pixel / 8)</code>
+                    </li>
+                    <li>For example, if <code>k = 16</code> and the image is <strong>800x600 pixels</strong>:
+                        <ul>
+                            <li><strong>Palette Size:</strong> <code>16 × 3 = 48</code> bytes.</li>
+                            <li><strong>Indexed Data Size:</strong> Each pixel requires <code>log2(16) = 4 bits</code>. Therefore, the total size for indexed data is:<br>
+                                <code>800 × 600 × 4 / 8 = 240,000 bytes</code> (or <strong>234.38 KB</strong>).
+                            </li>
+                            <li><strong>Total Compressed Size:</strong> <code>48 + 240,000 = 240,048 bytes</code> (or <strong>234.38 KB</strong>).</li>
+                        </ul>
+                    </li>
+                </ul>
+            </li>
+            <li><strong>Impact of Compression:</strong>
+                <ul>
+                    <li>By reducing the number of unique colors, the <strong>indexed format</strong> can achieve significant size reduction, especially for images with many repeated colors or gradients.</li>
+                    <li>In the above example, the original image size was <strong>1,406.25 KB</strong>, and the compressed size was reduced to <strong>234.38 KB</strong>, achieving a reduction of approximately <strong>83.33%</strong>.</li>
+                </ul>
+            </li>
+        </ol>
+    </div>
+    {% endif %}
+
+    <script>
+        function toggleDetails() {
+            var details = document.getElementById("details");
+            if (details.style.display === "none") {
+                details.style.display = "block";
+            } else {
+                details.style.display = "none";
+            }
+        }
+    </script>
+
+</body>
+</html>
