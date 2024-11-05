@@ -13,6 +13,7 @@ import math
 # Flask Setup
 app = Flask(__name__)
 
+
 # Function to Apply K-means Clustering to Reduce Colors
 def apply_kmeans(pixels, k):
     # K-means clustering using sklearn
@@ -22,13 +23,14 @@ def apply_kmeans(pixels, k):
     labels = kmeans.labels_
 
     # Assign each pixel the color of its respective centroid
-    compressed_pixels = centroids[labels].astype('uint8')
+    compressed_pixels = centroids[labels].astype("uint8")
     return compressed_pixels
+
 
 # Function to Compress Image and Convert to Indexed Format
 def compress_image(image_path, k):
     # Open the image
-    image = Image.open(image_path).convert('RGB')  # Ensure image is in RGB format
+    image = Image.open(image_path).convert("RGB")  # Ensure image is in RGB format
 
     # Convert image to numpy array and reshape
     pixels = np.array(image)
@@ -40,12 +42,13 @@ def compress_image(image_path, k):
 
     # Reshape back to original image dimensions
     compressed_pixels = compressed_pixels.reshape(original_shape)
-    compressed_image = Image.fromarray(compressed_pixels, 'RGB')
+    compressed_image = Image.fromarray(compressed_pixels, "RGB")
 
     # Convert the compressed image to indexed color palette
     compressed_image = compressed_image.convert("P", palette=Image.ADAPTIVE, colors=k)
 
     return compressed_image
+
 
 # Function to Calculate Image Size Based on Type
 def calculate_image_size(image):
@@ -58,38 +61,47 @@ def calculate_image_size(image):
         num_unique_colors = len(image.getpalette()) // 3
         palette_size = num_unique_colors * 3  # 3 bytes per color in the palette
         bits_per_pixel = math.ceil(math.log2(num_unique_colors))
-        indexed_data_size = (image.width * image.height * bits_per_pixel) / 8  # Convert bits to bytes
+        indexed_data_size = (
+            image.width * image.height * bits_per_pixel
+        ) / 8  # Convert bits to bytes
         return palette_size + int(indexed_data_size)
     else:
         return len(np.array(image).flatten())
 
+
 # Flask Route for Home Page
-@app.route('/')
+@app.route("/")
 def home():
-    return render_template('index.html', show_details=False)
+    return render_template("index.html", show_details=False)
+
 
 # Flask Route for Image Upload and Compression
-@app.route('/compress', methods=['POST'])
+@app.route("/compress", methods=["POST"])
 def compress():
-    if 'file' not in request.files:
-        return render_template('index.html', error="No file part")
+    if "file" not in request.files:
+        return render_template("index.html", error="No file part")
 
-    file = request.files['file']
-    if file.filename == '':
-        return render_template('index.html', error="No selected file")
+    file = request.files["file"]
+    if file.filename == "":
+        return render_template("index.html", error="No selected file")
 
     # Handle edge cases for unsupported file types
-    if not file.filename.lower().endswith(('.png', '.jpg', '.jpeg')):
-        return render_template('index.html', error="Unsupported file type. Please upload a PNG or JPEG image.")
+    if not file.filename.lower().endswith((".png", ".jpg", ".jpeg")):
+        return render_template(
+            "index.html",
+            error="Unsupported file type. Please upload a PNG or JPEG image.",
+        )
 
     # Convert file to a temporary file for processing
     with tempfile.NamedTemporaryFile(delete=False) as temp_file:
         file.save(temp_file.name)
         try:
-            k = int(request.form.get('colors', 16))  # Default to 16 colors if not specified
-            
+            k = int(
+                request.form.get("colors", 16)
+            )  # Default to 16 colors if not specified
+
             # Open original image and convert to PNG format
-            original_image = Image.open(temp_file.name).convert('RGB')
+            original_image = Image.open(temp_file.name).convert("RGB")
             original_image.save(temp_file.name, format="PNG")
 
             # Calculate original image size
@@ -114,32 +126,45 @@ def compress():
             size_reduction = ((original_size - compressed_size) / original_size) * 100
 
             # Send the compressed image back to the user with size comparison
-            return render_template('index.html', success=True, show_details=True, 
-                                   download_link='/download_compressed', 
-                                   original_size=f"{round(original_size / 1024, 2)} KB", 
-                                   compressed_size=f"{round(compressed_size / 1024, 2)} KB", 
-                                   size_reduction=f"{size_reduction:.2f}%")
+            return render_template(
+                "index.html",
+                success=True,
+                show_details=True,
+                download_link="/download_compressed",
+                original_size=f"{round(original_size / 1024, 2)} KB",
+                compressed_size=f"{round(compressed_size / 1024, 2)} KB",
+                size_reduction=f"{size_reduction:.2f}%",
+            )
         finally:
             # Remove temporary file
             os.unlink(temp_file.name)
 
+
 # Flask Route for Downloading Compressed Image
-@app.route('/download_compressed', methods=['GET'])
+@app.route("/download_compressed", methods=["GET"])
 def download_compressed():
     # Retrieve the compressed image from the buffer
-    if 'compressed_buffer' in globals() and compressed_buffer:
+    if "compressed_buffer" in globals() and compressed_buffer:
         compressed_buffer.seek(0)
-        return send_file(compressed_buffer, mimetype='image/png', as_attachment=True, download_name='compressed_image.png')
+        return send_file(
+            compressed_buffer,
+            mimetype="image/png",
+            as_attachment=True,
+            download_name="compressed_image.png",
+        )
     else:
         return "No compressed image available."
 
+
+# local
 # Flask Application Run
 # if __name__ == "__main__":
 #     app.run(debug=True)
 
+# prod
 if __name__ == "__main__":
-    from gunicorn.app.wsgiapp import run
-    run()
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
 
 
 """
